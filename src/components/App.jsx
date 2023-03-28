@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { ToastContainer } from 'react-toastify';
 import css from '../components/App.module.css';
 import getImages from '../api/imagesApi';
@@ -7,97 +7,83 @@ import { ImageGallery } from './ImageGallery';
 import { Button } from './Button';
 import { Loader } from './Loader';
 
-export class App extends Component {
-  state = {
-    images: [],
-    searchQuery: '',
-    status: 'idle',
-    cuurentPage: 1,
+const Status = {
+  idle: 'idle',
+  pending: 'pending',
+  rejected: 'rejected',
+  resolved: 'resolved',
+};
+
+export default function App() {
+  const [images, setImages] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [status, setStatus] = useState('idle');
+  const [currentPage, setcurrentPage] = useState(1);
+  const [setError] = useState(null);
+
+  useEffect(() => {
+    if (!searchQuery) {
+      return;
+    }
+    setStatus(Status.pending);
+
+    getImages(searchQuery, currentPage)
+      .then(response => {
+        setImages(response.data.hits);
+        setStatus(Status.resolved);
+      })
+      .catch(error => {
+        setError(error.message);
+        setStatus(Status.rejected);
+      });
+  }, [searchQuery, currentPage]);
+
+  const handleSubmit = str => {
+    setSearchQuery(str);
+    setImages([]);
+    setcurrentPage(1);
   };
 
-  handleGetImages = () => {
-    this.setState({ status: 'pending' });
-    getImages(this.state.searchQuery)
-      .then(response =>
-        this.setState({ images: response.data.hits, status: 'resolved' })
-      )
-      .catch(error =>
-        this.setState({ error: error.message, status: 'rejected' })
-      );
+  const loadMore = () => {
+    setcurrentPage(prevPage => prevPage + 1);
   };
 
-  componentDidMount() {
-    this.handleGetImages();
+  if (status === Status.idle) {
+    return (
+      <div className={css.app}>
+        <Searchbar onSubmit={handleSubmit} />
+        <ToastContainer autoClose={3000} />
+      </div>
+    );
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.searchQuery !== this.state.searchQuery) {
-      this.handleGetImages();
-    }
-    if (prevState.cuurentPage !== this.state.cuurentPage) {
-      getImages(this.state.searchQuery, this.state.cuurentPage)
-        .then(response =>
-          this.setState(prevState => ({
-            images: [...prevState.images, ...response.data.hits],
-            status: 'resolved',
-          }))
-        )
-        .catch(error =>
-          this.setState({ error: error.message, status: 'rejected' })
-        );
-    }
+  if (status === Status.pending) {
+    return (
+      <div className={css.app}>
+        <Searchbar onSubmit={handleSubmit} />
+        <ToastContainer autoClose={3000} />
+        <Loader />
+      </div>
+    );
   }
 
-  handleSubmit = searchQuery => {
-    this.setState({ searchQuery });
-  };
-
-  loadMore = () => {
-    this.setState(prevState => ({ cuurentPage: prevState.cuurentPage + 1 }));
-  };
-
-  render() {
-    const { status, images } = this.state;
-
-    if (status === 'idle') {
-      return (
-        <div className={css.app}>
-          <Searchbar onSubmit={this.handleSubmit} />
-          <ToastContainer autoClose={3000} />
-        </div>
-      );
-    }
-
-    if (status === 'pending') {
-      return (
-        <div className={css.app}>
-          <Searchbar onSubmit={this.handleSubmit} />
-          <ToastContainer autoClose={3000} />
-          <Loader />
-        </div>
-      );
-    }
-
-    if (status === 'rejected' || images.length === 0) {
-      return (
-        <div className={css.app}>
-          <Searchbar onSubmit={this.handleSubmit} />
-          <ToastContainer autoClose={3000} />
-          <p>Unfortunately there is no such image</p>
-        </div>
-      );
-    }
-    if (status === 'resolved') {
-      return (
-        <div className={css.app}>
-          <Searchbar onSubmit={this.handleSubmit} />
-          <ToastContainer autoClose={3000} />
-          <ImageGallery images={this.state.images} />
-          {this.state.images.length !== 0 && (
-            <Button onHandleClick={this.loadMore} />
-          )}
-        </div>
-      );
-    }
+  if (status === Status.rejected || images.length === 0) {
+    return (
+      <div className={css.app}>
+        <Searchbar onSubmit={handleSubmit} />
+        <ToastContainer autoClose={3000} />
+        <p>Enter the image you want to search</p>
+      </div>
+    );
+  }
+  if (status === Status.resolved) {
+    return (
+      <div className={css.app}>
+        <Searchbar onSubmit={handleSubmit} />
+        <ToastContainer autoClose={3000} />
+        <ImageGallery images={images} />
+        {images.length !== 0 && <Button onHandleClick={loadMore} />}
+      </div>
+    );
   }
 }
