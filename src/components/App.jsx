@@ -18,8 +18,8 @@ export default function App() {
   const [images, setImages] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [status, setStatus] = useState('idle');
-  const [currentPage, setcurrentPage] = useState(1);
-  const [setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!searchQuery) {
@@ -36,16 +36,16 @@ export default function App() {
         setError(error.message);
         setStatus(Status.rejected);
       });
-  }, [searchQuery, currentPage]);
+  }, [searchQuery, currentPage, error]);
 
   const handleSubmit = str => {
     setSearchQuery(str);
     setImages([]);
-    setcurrentPage(1);
+    setCurrentPage(1);
   };
 
   const loadMore = () => {
-    setcurrentPage(prevPage => prevPage + 1);
+    setCurrentPage(prevCurrentPage => prevCurrentPage + 1);
   };
 
   if (status === Status.idle) {
