@@ -25,11 +25,10 @@ export default function App() {
     if (!searchQuery) {
       return;
     }
-    setStatus(Status.pending);
 
     getImages(searchQuery, currentPage)
       .then(response => {
-        setImages(response.data.hits);
+        setImages(prev => [...prev, ...response.data.hits]);
         setStatus(Status.resolved);
       })
       .catch(error => {
